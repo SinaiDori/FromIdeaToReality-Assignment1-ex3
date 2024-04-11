@@ -5,6 +5,7 @@ import cv2
 import os
 import easyocr
 from easyocr import Reader
+from PIL import Image, ImageDraw, ImageFont
 
 # Replace with your actual API key
 API_KEY = "AIzaSyAt3JilcWEes3RPxD-NEivF2tGi1gAgTFk"
@@ -51,13 +52,15 @@ def save_frames(scene_list, video_path):
     # Create an EasyOCR reader
     reader = Reader(['en'])
 
+    # Load a font for the watermark
+    font = ImageFont.truetype("./arapey-regular.ttf", 24)
+
     # Iterate through the scene list and save major frames
     for scene in scene_list:
         frame_num += 1
         cap.set(cv2.CAP_PROP_POS_FRAMES, scene[0].get_frames())
         ret, frame = cap.read()
         if ret:
-            # frame_path = f"frame_{frame_num}.jpg"
             frame_path = os.path.join(
                 frames_directory, f"frame_{frame_num}.jpg")
             cv2.imwrite(frame_path, frame)
@@ -70,7 +73,40 @@ def save_frames(scene_list, video_path):
             for text in result:
                 print(f"Detected text: {text[1]}")
 
+            # Add watermark to the image
+            add_watermark(frame_path, "Sinai Dori", font)
+
     cap.release()
+
+
+def add_watermark(image_path, watermark_text, font):
+    # Open the image
+    image = Image.open(image_path)
+
+    # Create a drawing object
+    draw = ImageDraw.Draw(image)
+
+    # Get the image size
+    width, height = image.size
+
+    # Calculate the position for the watermark
+    text_width = draw.textlength(watermark_text, font=font)
+    text_height = int(min(image.size) / 20)
+    watermark_x = width - text_width - 10  # Adjust the position as needed
+    watermark_y = height - text_height - 10
+    # Get the pixel value
+    pixel_value = image.getpixel((10, 10))
+    # Calculate brightness (average of RGB values)
+    brightness = sum(pixel_value[:3]) / 3
+    # Compare brightness to a threshold
+    text_color = (255, 255, 255) if brightness < 128 else (0, 0, 0)
+
+    # Add the watermark text
+    draw.text((watermark_x, watermark_y), watermark_text,
+              font=font, fill=text_color)
+
+    # Save the watermarked image
+    image.save(image_path)
 
 
 if __name__ == "__main__":
