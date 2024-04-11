@@ -3,6 +3,8 @@ from googleapiclient.discovery import build
 from scenedetect import detect, ContentDetector
 import cv2
 import os
+import easyocr
+from easyocr import Reader
 
 # Replace with your actual API key
 API_KEY = "AIzaSyAt3JilcWEes3RPxD-NEivF2tGi1gAgTFk"
@@ -41,15 +43,32 @@ def save_frames(scene_list, video_path):
     cap = cv2.VideoCapture(video_path)
     frame_num = 0
 
+    # Extract video name from the video_path
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    frames_directory = f"{video_name}_frames"
+    os.makedirs(frames_directory, exist_ok=True)
+
+    # Create an EasyOCR reader
+    reader = Reader(['en'])
+
     # Iterate through the scene list and save major frames
     for scene in scene_list:
         frame_num += 1
         cap.set(cv2.CAP_PROP_POS_FRAMES, scene[0].get_frames())
         ret, frame = cap.read()
         if ret:
-            frame_path = f"frame_{frame_num}.jpg"
+            # frame_path = f"frame_{frame_num}.jpg"
+            frame_path = os.path.join(
+                frames_directory, f"frame_{frame_num}.jpg")
             cv2.imwrite(frame_path, frame)
             print(f"Saved {frame_path}")
+
+            # Use EasyOCR to detect text in the frame
+            result = reader.readtext(frame_path)
+
+            # Print the detected text
+            for text in result:
+                print(f"Detected text: {text[1]}")
 
     cap.release()
 
