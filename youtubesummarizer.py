@@ -6,6 +6,7 @@ import os
 import easyocr
 from easyocr import Reader
 from PIL import Image, ImageDraw, ImageFont
+import re
 
 # Replace with your actual API key
 API_KEY = "AIzaSyAt3JilcWEes3RPxD-NEivF2tGi1gAgTFk"
@@ -43,17 +44,16 @@ def save_frames(scene_list, video_path):
     # Create a VideoCapture object
     cap = cv2.VideoCapture(video_path)
     frame_num = 0
-
     # Extract video name from the video_path
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     frames_directory = f"{video_name}_frames"
     os.makedirs(frames_directory, exist_ok=True)
-
     # Create an EasyOCR reader
     reader = Reader(['en'])
-
     # Load a font for the watermark
     font = ImageFont.truetype("./arapey-regular.ttf", 24)
+    # Initialize a string to store the concatenated text
+    concatenated_text = ""
 
     # Iterate through the scene list and save major frames
     for scene in scene_list:
@@ -65,18 +65,21 @@ def save_frames(scene_list, video_path):
                 frames_directory, f"frame_{frame_num}.jpg")
             cv2.imwrite(frame_path, frame)
             print(f"Saved {frame_path}")
-
             # Use EasyOCR to detect text in the frame
             result = reader.readtext(frame_path)
-
-            # Print the detected text
+            # Process the detected text
             for text in result:
-                print(f"Detected text: {text[1]}")
-
+                detected_text = text[1]
+                # Remove numbers and symbols, keeping only English characters
+                cleaned_text = re.sub(r'[^a-zA-Z\s]+', '', detected_text)
+                # Concatenate the cleaned text
+                concatenated_text += cleaned_text + " "
             # Add watermark to the image
             add_watermark(frame_path, "Sinai Dori", font)
 
     cap.release()
+    # Print the concatenated text
+    print(f"Concatenated text: {concatenated_text.strip()}")
 
 
 def add_watermark(image_path, watermark_text, font):
