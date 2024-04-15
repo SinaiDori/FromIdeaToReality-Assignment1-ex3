@@ -3,12 +3,12 @@ from googleapiclient.discovery import build
 from scenedetect import detect, ContentDetector
 import cv2
 import os
-import easyocr
 from easyocr import Reader
 from PIL import Image, ImageDraw, ImageFont
 import re
+import imageio.v2 as imageio
+import pyglet
 
-# Replace with your actual API key
 API_KEY = "AIzaSyAt3JilcWEes3RPxD-NEivF2tGi1gAgTFk"
 
 
@@ -54,6 +54,8 @@ def save_frames(scene_list, video_path):
     font = ImageFont.truetype("./arapey-regular.ttf", 24)
     # Initialize a string to store the concatenated text
     concatenated_text = ""
+    # Initialize a list to store the frames
+    frames = []
 
     # Iterate through the scene list and save major frames
     for scene in scene_list:
@@ -76,10 +78,39 @@ def save_frames(scene_list, video_path):
                 concatenated_text += cleaned_text + " "
             # Add watermark to the image
             add_watermark(frame_path, "Sinai Dori", font)
+            # Append the frame to the list
+            frames.append(imageio.imread(frame_path))
 
     cap.release()
     # Print the concatenated text
     print(f"Concatenated text: {concatenated_text.strip()}")
+
+    # Create the animated GIF
+    gif_path = f"{video_name}_animated.gif"
+    # Adjust the duration as needed
+    imageio.mimsave(gif_path, frames, duration=10 / frame_num)
+    print(f"Animated GIF saved as {gif_path}")
+
+    # Display the animated GIF
+
+    # subprocess.run(
+    #     ["open", "-a", "/System/Applications/Preview.app", gif_path])
+
+    animation = pyglet.resource.animation(gif_path)
+    sprite = pyglet.sprite.Sprite(animation)
+    # create a window and set it to the image size
+    win = pyglet.window.Window(
+        width=sprite.width, height=sprite.height)
+    # set window background color = r, g, b, alpha
+    # each value goes from 0.0 to 1.0
+    green = 0, 1, 0, 1
+    pyglet.gl.glClearColor(*green)
+
+    @win.event
+    def on_draw():
+        win.clear()
+        sprite.draw()
+    pyglet.app.run()
 
 
 def add_watermark(image_path, watermark_text, font):
